@@ -37,8 +37,8 @@ contract StudentSocietyDAO {
         int32 isDone;
     }
 
-    MyERC20 studentERC20;
-    MyERC721 souvenir;
+    MyERC20 public studentERC20;
+    MyERC721 public souvenir;
     mapping(uint32 => Proposal) public proposals; // A map from proposal index to proposal
     mapping(uint32 => uint32) yeas;        // Yeas for a certain proposal
     mapping(uint32 => uint32) nays;        // Nays for a certain proposal
@@ -120,10 +120,6 @@ contract StudentSocietyDAO {
         studentERC20.allowance(msg.sender);
     }
 
-    function getMyToken() view external returns(uint256) {
-        return studentERC20.balanceOf(msg.sender);
-    }
-
     function getProposal(uint32 index) view external returns(Proposal memory) {
         return proposals[index];
     }
@@ -132,7 +128,11 @@ contract StudentSocietyDAO {
         return idx;
     }
 
-    function getMySouvenir() view external returns(string memory) {
-        return souvenir.getTokenURI(souvenirs[msg.sender]);
+    function getMySouvenir(address account) view external returns(string memory) {
+        return souvenir.getTokenURI(souvenirs[account]);
+    }
+
+    function getisInited(address account) view external returns(bool) {
+        return isInited[account];
     }
 }
