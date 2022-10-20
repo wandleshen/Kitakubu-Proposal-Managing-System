@@ -25,7 +25,7 @@ function App() {
           <LinkAccount />
         </Toolbar>
       </AppBar>
-      <Drawer
+      {/* <Drawer
         variant="permanent"
         sx={{
           width: drawerWidth,
@@ -36,7 +36,7 @@ function App() {
         <Toolbar />
         <Box sx={{ overflow: 'auto' }}>
           <List>
-            {['Create Proposal', 'All Proposals'].map((text, index) => (
+            {['All Proposals', 'Create Proposal'].map((text, index) => (
               <ListItem key={text} disablePadding>
                 <ListItemButton>
                   <ListItemText primary={text} />
@@ -45,7 +45,7 @@ function App() {
             ))}
           </List>
         </Box>
-      </Drawer>
+      </Drawer> */}
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Toolbar />
         <Proposal />
