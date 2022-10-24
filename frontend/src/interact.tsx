@@ -251,31 +251,42 @@ const Proposal = () => {
             let html = <div>No proposals yet</div>;
             if (mainContract && myERC20Contract) {
                 try {
-                    var relativeTime = require('dayjs/plugin/relativeTime')
-                    dayjs.extend(relativeTime)
                     const index = await mainContract.methods.idx().call();
+                    var name: String[] = [];
+                    var ss: String[] = [];
+                    var startTime: Number[] = [];
+                    var duration: Number[] = [];
+                    var isDone: Number[] = [];
                     for (var i = 0; i < index; i++) {
                         const prop = await mainContract.methods.proposals(i).call();
-                        console.log(prop.isDone)
                         const s = 'Deadline: ' + dayjs((Number(prop.startTime)+Number(prop.duration))*1000).toString();
-                        html = <Item elevation={0} >
-                            <div>{prop.name}</div>
-                            <div>{s}</div>
-                            {((Number(prop.startTime)+Number(prop.duration))-dayjs().unix() > 0)?
-                            <ButtonGroup variant="contained" aria-label="outlined primary button group">
-                                <Button onClick={()=>{upVote(i)}}>Yea</Button>
-                                <Button onClick={()=>{downVote(i)}}>Nay</Button>
+                        name.push(prop.name);
+                        ss.push(s);
+                        startTime.push(Number(prop.startTime));
+                        duration.push(Number(prop.duration));
+                        isDone.push(prop.isDone);
+                    }
+                    html =  <React.Fragment>
+                    {name.map((n: String, index) =>
+                    <Item elevation={0} >
+                        <div>{n}</div>
+                        <div>{ss[index]}</div>
+                        {((Number(startTime[index])+Number(duration[index]))-dayjs().unix() > 0)?
+                            <ButtonGroup variant="outlined" aria-label="outlined primary button group">
+                                <Button onClick={()=>{upVote(index)}}>Yea</Button>
+                                <Button onClick={()=>{downVote(index)}}>Nay</Button>
                             </ButtonGroup>
                             :
-                            (prop.isDone < 0) ?
-                            <Button variant="contained" onClick={manageProp}>Manage</Button>
-                            :
-                            (prop.isDone === 0) ?
-                            <Button disabled>NotApproved</Button>
-                            :
-                            <Button disabled>Approved</Button>}
-                        </Item>;
-                    }
+                                (isDone[index] < 0) ?
+                                <Button variant="outlined" onClick={manageProp}>Manage</Button>
+                                :
+                                (isDone[index] == 0) ?
+                                    <Button disabled>Not Approved</Button>
+                                    :
+                                    <Button disabled>Approved</Button>}
+                    </Item>
+                    )};
+                    </React.Fragment>
                 } catch (error: any) {
                     setError(error.message);
                     setOpen(true);
@@ -448,8 +459,8 @@ const Proposal = () => {
                 message={sMsg}
                 action={action}
             >
-                <Alert onClose={handleClose} severity="error" sx={{ width: '100%' }}>
-                    {errMsg}
+                <Alert onClose={handleClose} severity="success" sx={{ width: '100%' }}>
+                    {sMsg}
                 </Alert>
             </Snackbar>
             <Backdrop
