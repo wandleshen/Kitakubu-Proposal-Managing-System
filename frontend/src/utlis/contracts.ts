@@ -13,8 +13,8 @@ const myERC20  = MyERC20.abi
 // const myERC721 = MyERC721.abi
 
 // 获取合约实例
-const mainContract     = new web3.eth.Contract(mainABI, '0x4CCbB5f327aA918Fe295726384331C3DbA60c331')
-const myERC20Contract  = new web3.eth.Contract(myERC20, '0x7A81eddA517176b6CDa8Cd693c0B40709c4cB392')
+const mainContract     = new web3.eth.Contract(mainABI, '0x54Cc2644c1605901F50D215b2295e891C1685d1B')
+const myERC20Contract  = new web3.eth.Contract(myERC20, '0xC20d3a60402464067d85C19EB0EA874983BCF8ff')
 // const myERC721Contract = new web3.eth.Contract(myERC721)
 
 // 导出

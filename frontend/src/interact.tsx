@@ -3,6 +3,7 @@ import Snackbar from '@mui/material/Snackbar';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import MuiAlert, { AlertProps } from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
@@ -13,6 +14,9 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import Stack from '@mui/material/Stack';
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
 import dayjs, { Dayjs } from 'dayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -37,12 +41,21 @@ const Text = styled('text')(({ theme }) => ({
     padding: theme.spacing(1),
 }));
 
+const Item = styled(Paper)(({ theme }) => ({
+    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
+    ...theme.typography.body2,
+    padding: theme.spacing(1),
+    textAlign: 'center',
+    color: theme.palette.text.secondary,
+}));
+
 const LinkAccount = () => {
 
     const [account, setAccount] = React.useState('');
     const [accountBalance, setAccountBalance] = React.useState(0);
     const [open, setOpen] = React.useState(false);
     const [errMsg, setError] = React.useState('');
+    const [init, setInit] = React.useState(false);
 
     React.useEffect(() => {
         // 初始化检查用户是否已经连接钱包
@@ -68,12 +81,21 @@ const LinkAccount = () => {
                 const ab = await myERC20Contract.methods.balanceOf(account).call();
                 setAccountBalance(ab);
             } else {
-                alert('Contract not exists.');
+                setError('Contract not exists.');
+                setOpen(true);
             }
         }
 
         if (account !== '') {
             getAccountInfo();
+            mainContract.methods.isInited(account).call().then(function (res: Boolean) {
+                if (res) {
+                    setInit(true);
+                } else {
+                    setInit(false);
+                    // window.location.reload();
+                }
+            })
         }
     }, [account]);
 
@@ -85,6 +107,7 @@ const LinkAccount = () => {
                 })
                 const ab = await myERC20Contract.methods.balanceOf(account).call();
                 setAccountBalance(ab);
+                window.location.reload();
             } catch (error: any) {
                 setError(error.message);
                 setOpen(true);
@@ -170,11 +193,9 @@ const LinkAccount = () => {
             }
             {account !== '' &&
                 <div>
-                    {!mainContract.methods.getisInited(account).call() &&
-                        <Button variant='outlined' onClick={onClickGetToken} style={{ color: "#ffffff" }}>Click to Get Tokens</Button>
-                    }
-                    {mainContract.methods.getisInited(account).call() &&
-                        <Text>Balance:  {accountBalance} </Text>
+                    {(init)
+                        ? <Text>Balance:  {accountBalance} </Text>
+                        : <Button variant='outlined' onClick={onClickGetToken} style={{ color: "#ffffff" }}>Click to Get Tokens</Button>
                     }
                     <Chip avatar={<Avatar>{account.substring(2, 3)}</Avatar>}
                         label={account.substring(0, 5)}
@@ -204,6 +225,12 @@ const Proposal = () => {
     const [openBck, setOpenBck] = React.useState(false);
     const [errMsg, setError] = React.useState('');
 
+    const [h, setH] = React.useState(<div>No proposals yet</div>);
+    const [load, setLoad] = React.useState(false);
+
+    const [sopen, setSopen] = React.useState(false);
+    const [sMsg, setS] = React.useState('');
+
     React.useEffect(() => {
         // 初始化检查用户是否已经连接钱包
         // 查看window对象里是否存在ethereum（metamask安装后注入的）对象
@@ -219,10 +246,59 @@ const Proposal = () => {
             }
         }
 
-        initCheckAccounts()
+        // TODO
+        const getAllProposals = async () => {
+            let html = <div>No proposals yet</div>;
+            if (mainContract && myERC20Contract) {
+                try {
+                    var relativeTime = require('dayjs/plugin/relativeTime')
+                    dayjs.extend(relativeTime)
+                    const index = await mainContract.methods.idx().call();
+                    for (var i = 0; i < index; i++) {
+                        const prop = await mainContract.methods.proposals(i).call();
+                        console.log(prop.isDone)
+                        const s = 'Deadline: ' + dayjs((Number(prop.startTime)+Number(prop.duration))*1000).toString();
+                        html = <Item elevation={0} >
+                            <div>{prop.name}</div>
+                            <div>{s}</div>
+                            {((Number(prop.startTime)+Number(prop.duration))-dayjs().unix() > 0)?
+                            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+                                <Button onClick={()=>{upVote(i)}}>Yea</Button>
+                                <Button onClick={()=>{downVote(i)}}>Nay</Button>
+                            </ButtonGroup>
+                            :
+                            (prop.isDone < 0) ?
+                            <Button variant="contained" onClick={manageProp}>Manage</Button>
+                            :
+                            (prop.isDone === 0) ?
+                            <Button disabled>NotApproved</Button>
+                            :
+                            <Button disabled>Approved</Button>}
+                        </Item>;
+                    }
+                } catch (error: any) {
+                    setError(error.message);
+                    setOpen(true);
+                }
+            } else {
+                setError("Contract not exists!");
+                setOpen(true);
+            }
+            return (
+                html
+            );
+        }
+
+        initCheckAccounts();
+        getAllProposals().then(function (res: JSX.Element) { setH(res); setLoad(true); });
+
     }, [])
 
     const onClickCreateProposal = async () => {
+        setProposalName('');
+        setIsSec(false);
+        setValue(dayjs());
+        setEndValue(dayjs().add(1, 'day'));
         setOpenBck(true);
     }
 
@@ -256,23 +332,71 @@ const Proposal = () => {
 
         setOpen(false);
         setOpenBck(false);
+        setSopen(false);
     };
 
     const handleSec = (event: React.ChangeEvent<HTMLInputElement>) => {
         setIsSec(event.target.checked);
     }
 
+    const upVote = async (index: Number) => {
+        if (mainContract && myERC20Contract) {
+            try {
+                await mainContract.methods.vote(index, true).send({ from: account });
+                setS("Vote success!");
+                setSopen(true);
+            } catch (error: any) {
+                setError(error.message);
+                setOpen(true);
+            }
+        } else {
+            setError("Contract not exists!");
+            setOpen(true);
+        }
+    }
+
+    const downVote = async (index: Number) => {
+        if (mainContract && myERC20Contract) {
+            try {
+                await mainContract.methods.vote(index, false).send({ from: account });
+                setS("Vote success!");
+                setSopen(true);
+            } catch (error: any) {
+                setError(error.message);
+                setOpen(true);
+            }
+        } else {
+            setError("Contract not exists!");
+            setOpen(true);
+        }
+    }
+
+    const manageProp = async () => {
+        if (mainContract && myERC20Contract) {
+            try {
+                await mainContract.methods.checkProposals().send({ from: account });
+                setS("All proposals has been checked!");
+                setSopen(true);
+            } catch (error: any) {
+                setError(error.message);
+                setOpen(true);
+            }
+        } else {
+            setError("Contract not exists!");
+            setOpen(true);
+        }
+    }
+
     const onClickCreate = async () => {
         if (mainContract && myERC20Contract) {
             try {
-                await mainContract.methods.createProposal(value?.unix(), 
-                                                          endValue?.unix() - value?.unix(),
-                                                          proposalName,
-                                                          isSec).send({
-                    from: account
-                })
-                setProposalName('');
-                setIsSec(false);
+                await mainContract.methods.createProposal(value!.unix(),
+                    endValue!.unix() - value!.unix(),
+                    proposalName,
+                    isSec).send({
+                        from: account
+                    })
+                window.location.reload()
             } catch (error: any) {
                 setError(error.message);
                 setOpen(true);
@@ -300,7 +424,7 @@ const Proposal = () => {
     );
 
     return (
-        <div>
+        <React.Fragment>
             <Fab color="primary" aria-label="add"
                 style={{ position: 'fixed', bottom: '10%', right: '5%' }}
                 onClick={onClickCreateProposal}>
@@ -311,6 +435,17 @@ const Proposal = () => {
                 autoHideDuration={6000}
                 onClose={handleClose}
                 message={errMsg}
+                action={action}
+            >
+                <Alert onClose={handleClose} severity="error" sx={{ width: '100%' }}>
+                    {errMsg}
+                </Alert>
+            </Snackbar>
+            <Snackbar
+                open={sopen}
+                autoHideDuration={6000}
+                onClose={handleClose}
+                message={sMsg}
                 action={action}
             >
                 <Alert onClose={handleClose} severity="error" sx={{ width: '100%' }}>
@@ -331,8 +466,9 @@ const Proposal = () => {
                         autoComplete="off"
                     >
                         <div style={{ backgroundColor: '#ffffff' }}>
+                            <Text>Create Proposal</Text>
+                            <div style={{ marginBottom: '10px' }}></div>
                             <TextField
-                                required
                                 id="outlined"
                                 label="Proposal Name"
                                 defaultValue=""
@@ -363,7 +499,10 @@ const Proposal = () => {
                     </Box>
                 </LocalizationProvider>
             </Backdrop>
-        </div>
+            <Stack spacing={2} divider={<Divider flexItem />}>
+                {load && h}
+            </Stack>
+        </React.Fragment>
     );
 }
 

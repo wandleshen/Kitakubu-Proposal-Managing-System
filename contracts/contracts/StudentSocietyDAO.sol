@@ -24,7 +24,7 @@ contract StudentSocietyDAO {
     uint256 constant public VOTE_TOKEN = 100;
     uint256 constant public INIT_TOKEN = 1000;
     Proposal private p;
-    uint32 private idx = 0;
+    uint32 public idx;
     address[] public members;
 
     struct Proposal {
@@ -43,8 +43,9 @@ contract StudentSocietyDAO {
     mapping(uint32 => uint32) yeas;        // Yeas for a certain proposal
     mapping(uint32 => uint32) nays;        // Nays for a certain proposal
     mapping(address => uint32) approvedProposals;
-    mapping(address => bool) isInited;
+    mapping(address => bool) public isInited;
     mapping(address => uint256) souvenirs;
+    mapping(address => mapping(uint32 => bool)) isVote;
 
     constructor() {
         // maybe you need a constructor
@@ -74,6 +75,7 @@ contract StudentSocietyDAO {
         p = proposals[index];
         require(block.timestamp >= p.startTime && block.timestamp < p.startTime + p.duration, "Proposal has been closed");
         require(studentERC20.balanceOf(msg.sender) >= VOTE_TOKEN, "Token balance is insufficient");
+        require(!isVote[msg.sender][index], "Has been voted");
         studentERC20.transferFrom(msg.sender, address(this), VOTE_TOKEN);
         if (choice)
             yeas[p.index]++;
@@ -83,6 +85,7 @@ contract StudentSocietyDAO {
             emit ProposalVotedAnonymously(msg.sender, index);
         else
             emit ProposalVoted(msg.sender, index, choice);
+        isVote[msg.sender][index] = true;
         return "Vote success";
     }
 
@@ -120,19 +123,7 @@ contract StudentSocietyDAO {
         studentERC20.allowance(msg.sender);
     }
 
-    function getProposal(uint32 index) view external returns(Proposal memory) {
-        return proposals[index];
-    }
-
-    function getIndex() view external returns(uint32) {
-        return idx;
-    }
-
     function getMySouvenir(address account) view external returns(string memory) {
         return souvenir.getTokenURI(souvenirs[account]);
-    }
-
-    function getisInited(address account) view external returns(bool) {
-        return isInited[account];
     }
 }
