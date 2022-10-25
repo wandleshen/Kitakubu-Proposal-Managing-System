@@ -56,6 +56,7 @@ const LinkAccount = () => {
     const [open, setOpen] = React.useState(false);
     const [errMsg, setError] = React.useState('');
     const [init, setInit] = React.useState(false);
+    const [URI, setURI] = React.useState('');
 
     React.useEffect(() => {
         // 初始化检查用户是否已经连接钱包
@@ -98,6 +99,21 @@ const LinkAccount = () => {
             })
         }
     }, [account]);
+
+    React.useEffect(() => {
+        const getSouvenir = async () => {
+            var my = account;
+            // 尝试获取连接的用户账户
+            const accounts = await web3.eth.getAccounts()
+            if (accounts && accounts.length) {
+                my = accounts[0];
+            }
+            const souvenir = await mainContract.methods.getMySouvenir(my).call();
+            setURI(souvenir);
+        }
+
+        getSouvenir();
+    })
 
     const onClickGetToken = async () => {
         if (mainContract && myERC20Contract) {
@@ -194,7 +210,7 @@ const LinkAccount = () => {
             {account !== '' &&
                 <div>
                     {(init)
-                        ? <Text>Balance:  {accountBalance} </Text>
+                        ? <React.Fragment><img src={URI} alt= "" /><Text>Balance:  {accountBalance} KTC</Text></React.Fragment>
                         : <Button variant='outlined' onClick={onClickGetToken} style={{ color: "#ffffff" }}>Click to Get Tokens</Button>
                     }
                     <Chip avatar={<Avatar>{account.substring(2, 3)}</Avatar>}
@@ -220,7 +236,6 @@ const LinkAccount = () => {
 
 const Proposal = () => {
 
-    const [account, setAccount] = React.useState('');
     const [open, setOpen] = React.useState(false);
     const [openBck, setOpenBck] = React.useState(false);
     const [errMsg, setError] = React.useState('');
@@ -232,60 +247,57 @@ const Proposal = () => {
     const [sMsg, setS] = React.useState('');
 
     React.useEffect(() => {
-        // 初始化检查用户是否已经连接钱包
-        // 查看window对象里是否存在ethereum（metamask安装后注入的）对象
-        const initCheckAccounts = async () => {
-            // @ts-ignore
-            const { ethereum } = window;
-            if (Boolean(ethereum && ethereum.isMetaMask)) {
-                // 尝试获取连接的用户账户
-                const accounts = await web3.eth.getAccounts()
-                if (accounts && accounts.length) {
-                    setAccount(accounts[0])
-                }
-            }
-        }
-
-        // TODO
         const getAllProposals = async () => {
             let html = <div>No proposals yet</div>;
             if (mainContract && myERC20Contract) {
                 try {
                     const index = await mainContract.methods.idx().call();
                     var name: String[] = [];
+                    var starts: String[] = [];
                     var ss: String[] = [];
                     var startTime: Number[] = [];
                     var duration: Number[] = [];
                     var isDone: Number[] = [];
                     for (var i = 0; i < index; i++) {
                         const prop = await mainContract.methods.proposals(i).call();
-                        const s = 'Deadline: ' + dayjs((Number(prop.startTime)+Number(prop.duration))*1000).toString();
+                        const start = 'Start at: ' + dayjs(Number(prop.startTime)*1000).toString();
+                        const s = 'Close at: ' + dayjs((Number(prop.startTime)+Number(prop.duration))*1000).toString();
                         name.push(prop.name);
+                        starts.push(start);
                         ss.push(s);
                         startTime.push(Number(prop.startTime));
                         duration.push(Number(prop.duration));
                         isDone.push(prop.isDone);
                     }
                     html =  <React.Fragment>
+                        <Stack spacing={2} divider={<Divider flexItem />}>
                     {name.map((n: String, index) =>
                     <Item elevation={0} >
                         <div>{n}</div>
+                        <div>{starts[index]}</div>
                         <div>{ss[index]}</div>
                         {((Number(startTime[index])+Number(duration[index]))-dayjs().unix() > 0)?
+                            (Number(startTime[index]) < dayjs().unix()) ?
                             <ButtonGroup variant="outlined" aria-label="outlined primary button group">
                                 <Button onClick={()=>{upVote(index)}}>Yea</Button>
                                 <Button onClick={()=>{downVote(index)}}>Nay</Button>
+                            </ButtonGroup>
+                            :
+                            <ButtonGroup variant="outlined" aria-label="outlined primary button group">
+                                <Button disabled>Yea</Button>
+                                <Button disabled>Nay</Button>
                             </ButtonGroup>
                             :
                                 (isDone[index] < 0) ?
                                 <Button variant="outlined" onClick={manageProp}>Manage</Button>
                                 :
                                 (isDone[index] == 0) ?
-                                    <Button disabled>Not Approved</Button>
+                                    <Button disabled style={{ color: "#fc4334" }}>Not Approved</Button>
                                     :
-                                    <Button disabled>Approved</Button>}
+                                    <Button disabled style={{ color: "#60ba6d" }}>Approved</Button>}
                     </Item>
-                    )};
+                    )}
+                    </Stack>
                     </React.Fragment>
                 } catch (error: any) {
                     setError(error.message);
@@ -299,10 +311,7 @@ const Proposal = () => {
                 html
             );
         }
-
-        initCheckAccounts();
         getAllProposals().then(function (res: JSX.Element) { setH(res); setLoad(true); });
-
     }, [])
 
     const onClickCreateProposal = async () => {
@@ -353,6 +362,11 @@ const Proposal = () => {
     const upVote = async (index: Number) => {
         if (mainContract && myERC20Contract) {
             try {
+                var account = '';
+                const accounts = await web3.eth.getAccounts()
+                if (accounts && accounts.length) {
+                    account = accounts[0];
+                }
                 await mainContract.methods.vote(index, true).send({ from: account });
                 setS("Vote success!");
                 setSopen(true);
@@ -369,6 +383,11 @@ const Proposal = () => {
     const downVote = async (index: Number) => {
         if (mainContract && myERC20Contract) {
             try {
+                var account = '';
+                const accounts = await web3.eth.getAccounts()
+                if (accounts && accounts.length) {
+                    account = accounts[0];
+                }
                 await mainContract.methods.vote(index, false).send({ from: account });
                 setS("Vote success!");
                 setSopen(true);
@@ -385,7 +404,13 @@ const Proposal = () => {
     const manageProp = async () => {
         if (mainContract && myERC20Contract) {
             try {
+                var account = '';
+                const accounts = await web3.eth.getAccounts()
+                if (accounts && accounts.length) {
+                    account = accounts[0];
+                }
                 await mainContract.methods.checkProposals().send({ from: account });
+                window.location.reload();
                 setS("All proposals has been checked!");
                 setSopen(true);
             } catch (error: any) {
@@ -401,6 +426,11 @@ const Proposal = () => {
     const onClickCreate = async () => {
         if (mainContract && myERC20Contract) {
             try {
+                var account = '';
+                const accounts = await web3.eth.getAccounts()
+                if (accounts && accounts.length) {
+                    account = accounts[0];
+                }
                 await mainContract.methods.createProposal(value!.unix(),
                     endValue!.unix() - value!.unix(),
                     proposalName,
@@ -510,9 +540,7 @@ const Proposal = () => {
                     </Box>
                 </LocalizationProvider>
             </Backdrop>
-            <Stack spacing={2} divider={<Divider flexItem />}>
-                {load && h}
-            </Stack>
+            {load && h}
         </React.Fragment>
     );
 }
