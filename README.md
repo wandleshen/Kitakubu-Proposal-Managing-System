@@ -29,7 +29,8 @@
     ```bash
     npm install
     ```
-6. 在 `./frontend` 中启动前端程序，运行如下的命令：
+6. 修改 `./frontend/src/address.json` 中的地址为部署后的地址
+7. 在 `./frontend` 中启动前端程序，运行如下的命令：
     ```bash
     npm run start
     ```
