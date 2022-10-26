@@ -234,6 +234,12 @@ const LinkAccount = () => {
     );
 }
 
+declare module 'dayjs' {
+    interface Dayjs {
+        fromNow(): String;
+    }
+}
+
 const Proposal = () => {
 
     const [open, setOpen] = React.useState(false);
@@ -249,6 +255,8 @@ const Proposal = () => {
     React.useEffect(() => {
         const getAllProposals = async () => {
             let html = <div>No proposals yet</div>;
+            var relativeTime = require('dayjs/plugin/relativeTime');
+            dayjs.extend(relativeTime);
             if (mainContract && myERC20Contract) {
                 try {
                     const index = await mainContract.methods.idx().call();
@@ -258,26 +266,36 @@ const Proposal = () => {
                     var startTime: Number[] = [];
                     var duration: Number[] = [];
                     var isDone: Number[] = [];
+                    var isVote: Boolean[] = [];
+                    var account = '';
+                    const accounts = await web3.eth.getAccounts()
+                    if (accounts && accounts.length) {
+                        account = accounts[0];
+                    }
                     for (var i = 0; i < index; i++) {
                         const prop = await mainContract.methods.proposals(i).call();
-                        const start = 'Start at: ' + dayjs(Number(prop.startTime)*1000).toString();
-                        const s = 'Close at: ' + dayjs((Number(prop.startTime)+Number(prop.duration))*1000).toString();
+                        const isVoted = await mainContract.methods.getIsVoted(account, i).call();
+                        const startDate = dayjs(Number(prop.startTime)*1000);
+                        const endDate = dayjs(dayjs((Number(prop.startTime)+Number(prop.duration))*1000));
+                        const start = 'Start at ' + startDate.format('YYYY-MM-DD HH:mm:ss') + ' (' + startDate.fromNow() + ')';
+                        const s = 'Close at ' + endDate.format('YYYY-MM-DD HH:mm:ss') + ' (' + endDate.fromNow() + ')';
                         name.push(prop.name);
                         starts.push(start);
                         ss.push(s);
                         startTime.push(Number(prop.startTime));
                         duration.push(Number(prop.duration));
                         isDone.push(prop.isDone);
+                        isVote.push(isVoted);
                     }
                     html =  <React.Fragment>
                         <Stack spacing={2} divider={<Divider flexItem />}>
                     {name.map((n: String, index) =>
                     <Item elevation={0} >
-                        <div>{n}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{n}</div>
                         <div>{starts[index]}</div>
                         <div>{ss[index]}</div>
                         {((Number(startTime[index])+Number(duration[index]))-dayjs().unix() > 0)?
-                            (Number(startTime[index]) < dayjs().unix()) ?
+                            (Number(startTime[index]) < dayjs().unix() && !isVote[index]) ?
                             <ButtonGroup variant="outlined" aria-label="outlined primary button group">
                                 <Button onClick={()=>{upVote(index)}}>Yea</Button>
                                 <Button onClick={()=>{downVote(index)}}>Nay</Button>
@@ -316,7 +334,6 @@ const Proposal = () => {
 
     const onClickCreateProposal = async () => {
         setProposalName('');
-        setIsSec(false);
         setValue(dayjs());
         setEndValue(dayjs().add(1, 'day'));
         setOpenBck(true);
@@ -330,7 +347,6 @@ const Proposal = () => {
         dayjs(),
     );
 
-    const [isSec, setIsSec] = React.useState(false);
     const [proposalName, setProposalName] = React.useState('');
 
     const handleChange = (newValue: Dayjs | null) => {
@@ -355,10 +371,6 @@ const Proposal = () => {
         setSopen(false);
     };
 
-    const handleSec = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setIsSec(event.target.checked);
-    }
-
     const upVote = async (index: Number) => {
         if (mainContract && myERC20Contract) {
             try {
@@ -370,6 +382,7 @@ const Proposal = () => {
                 await mainContract.methods.vote(index, true).send({ from: account });
                 setS("Vote success!");
                 setSopen(true);
+                setTimeout(() => window.location.reload(), 1000);
             } catch (error: any) {
                 setError(error.message);
                 setOpen(true);
@@ -391,6 +404,7 @@ const Proposal = () => {
                 await mainContract.methods.vote(index, false).send({ from: account });
                 setS("Vote success!");
                 setSopen(true);
+                setTimeout(() => window.location.reload(), 1000);
             } catch (error: any) {
                 setError(error.message);
                 setOpen(true);
@@ -410,9 +424,9 @@ const Proposal = () => {
                     account = accounts[0];
                 }
                 await mainContract.methods.checkProposals().send({ from: account });
-                window.location.reload();
                 setS("All proposals has been checked!");
                 setSopen(true);
+                setTimeout(() => window.location.reload(), 1000);
             } catch (error: any) {
                 setError(error.message);
                 setOpen(true);
@@ -434,7 +448,7 @@ const Proposal = () => {
                 await mainContract.methods.createProposal(value!.unix(),
                     endValue!.unix() - value!.unix(),
                     proposalName,
-                    isSec).send({
+                    ).send({
                         from: account
                     })
                 window.location.reload()
@@ -530,12 +544,8 @@ const Proposal = () => {
                                 renderInput={(params) => <TextField {...params} />}
                             />
                             <div></div>
-                            <FormControlLabel control={<Checkbox
-                                value={isSec}
-                                onChange={handleSec} />} label="isSecret"
-                                style={{ color: "black", marginLeft: '1%' }} />
-                            <Button variant='contained' onClick={onClickCreate}>Create</Button>
-                            <Button variant='contained' onClick={handleClose} style={{ marginLeft: '10%' }}>Cancel</Button>
+                            <Button variant='contained' onClick={onClickCreate} style={{ marginLeft: '10%', marginBottom: '2%', marginTop: '2%' }}>Create</Button>
+                            <Button variant='contained' onClick={handleClose} style={{ marginLeft: '20%' }}>Cancel</Button>
                         </div>
                     </Box>
                 </LocalizationProvider>

@@ -13,13 +13,12 @@ contract StudentSocietyDAO {
 
     // use a event if you want
     event ProposalInitiated(uint32 proposalIndex);
-    event ProposalVotedAnonymously(address voter, uint32 proposalIndex);
     event ProposalVoted(address voter, uint32 proposalIndex, bool choice);
     event ProposalApproved(uint32 proposalIndex);
     event ProposalNotApproved(uint32 proposalIndex);
     event haveSouvenir(address player, uint256 id);
 
-    uint256 constant public PROPOSAL_TOKEN = 500;
+    uint256 constant public PROPOSAL_TOKEN = 250;
     uint256 constant public PROPOSAL_REWARD = 1000;
     uint256 constant public VOTE_TOKEN = 100;
     uint256 constant public INIT_TOKEN = 1000;
@@ -33,7 +32,6 @@ contract StudentSocietyDAO {
         uint256 startTime; // proposal start time
         uint256 duration;  // proposal duration
         string name;       // proposal name
-        bool isSecret;     // whether vote in secret
         int32 isDone;
     }
 
@@ -49,7 +47,7 @@ contract StudentSocietyDAO {
 
     constructor() {
         // maybe you need a constructor
-        studentERC20 = new MyERC20("KitakubuToken", "KTC");
+        studentERC20 = new MyERC20("KitakubuCoin", "KTC");
         souvenir = new MyERC721("Souvenir", "SVR");
     }
 
@@ -58,10 +56,10 @@ contract StudentSocietyDAO {
     // }
 
     // create a proposal
-    function createProposal(uint256 startTime, uint256 duration, string memory name, bool isSecret) 
+    function createProposal(uint256 startTime, uint256 duration, string memory name) 
                             external returns(string memory) {
         require(studentERC20.balanceOf(msg.sender) >= PROPOSAL_TOKEN, "Token balance is insufficient");
-        p = Proposal(idx, msg.sender, startTime, duration, name, isSecret, -1);
+        p = Proposal(idx, msg.sender, startTime, duration, name, -1);
         studentERC20.transferFrom(msg.sender, address(this), PROPOSAL_TOKEN);
         proposals[p.index] = p;
         yeas[p.index] = 0;
@@ -81,10 +79,7 @@ contract StudentSocietyDAO {
             yeas[p.index]++;
         else
             nays[p.index]++;
-        if (p.isSecret)
-            emit ProposalVotedAnonymously(msg.sender, index);
-        else
-            emit ProposalVoted(msg.sender, index, choice);
+        emit ProposalVoted(msg.sender, index, choice);
         isVote[msg.sender][index] = true;
         return "Vote success";
     }
@@ -100,7 +95,7 @@ contract StudentSocietyDAO {
                     studentERC20.transfer(p.proposer, PROPOSAL_REWARD);
                     p.isDone = 1;
                     if (approvedProposals[p.proposer] == 3) {
-                        uint256 id = souvenir.awardItem(p.proposer, "path/to/address.json");
+                        uint256 id = souvenir.awardItem(p.proposer);
                         souvenirs[p.proposer] = id;
                         emit haveSouvenir(p.proposer, id);
                     }
@@ -125,5 +120,9 @@ contract StudentSocietyDAO {
 
     function getMySouvenir(address account) view external returns(string memory) {
         return souvenir.getTokenURI(souvenirs[account]);
+    }
+
+    function getIsVoted(address account, uint32 index) view external returns(bool) {
+        return isVote[account][index];
     }
 }
