@@ -6,7 +6,7 @@ import App from './App';
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
-document.title = 'KitakubuPMS'
+
 root.render(
   <React.StrictMode>
     <StyledEngineProvider injectFirst>
