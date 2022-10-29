@@ -234,24 +234,32 @@
    ![](assets/0_init_page.png)
 2. 连接钱包后，可以在右上角看到自己的钱包地址前三位和领取代币按钮。
    ![](assets/1_link_done.png)
-3. 领取后，右上角按钮变为剩余的代币数量。
+3. 领取后，右上角按钮变为剩余的代币数量，同时区块链上记录了这次的行为。
    ![](assets/2_get_token.png)
+   ![](assets/2_block.png)
 4. 点击右下角加号，可以看到新建提案的界面。
    ![](assets/3_create_proposal.png)
-5. 创建提案后就可以看到提案列表，其中包含提案名称、开始时间、结束时间和投票按钮。
+5. 创建提案后就可以看到提案列表，其中包含提案名称、开始时间、结束时间和投票按钮，同时区块链上记录了这次的行为。
    ![](assets/4_proposal_list.png)
-6. 点击投票按钮即可进行投票，投完票后按钮变为灰色。
+   ![](assets/4_block.png)
+6. 点击投票按钮即可进行投票，投完票后按钮变为灰色，同时区块链上记录了这次的行为。
    ![](assets/5_vote_done.png)
+   ![](assets/5_block.png)
 7. 当提案时间结束后，投票按钮变为处理按钮，点击后可以处理提案。
    ![](assets/6_manage_proposal.png)
-8. 处理完后，可以看到提案列表中的提案已经变为通过。
+8. 处理完后，可以看到提案列表中的提案已经变为通过，同时区块链上记录了这次的行为。
    ![](assets/7_approved.png)
-9. 当通过三个提案后，可以看到右上角出现了一个牌子，也就是我们的纪念品。
+   ![](assets/7_block.png)
+9. 当通过三个提案后，可以看到右上角出现了一个牌子，也就是我们的纪念品，同时区块链上记录了这次的行为。
    ![](assets/8_nft.png)
+   ![](assets/8_block.png)
 
 ## 参考内容
 
 [OpenZeppelin ERC721 文档](https://docs.openzeppelin.com/contracts/3.x/api/token/erc721)
+
 [OpenZeppelin ERC20 文档](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20)
+
 [React Material UI 文档](https://mui.com/zh/material-ui/)
+
 [Day.js 文档](https://day.js.org/docs/zh-CN/installation/installation)
